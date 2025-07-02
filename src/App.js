@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 
 const SituationTrackerApp = () => {
   const [hasAnsweredToday, setHasAnsweredToday] = useState(false);
@@ -17,38 +17,41 @@ const SituationTrackerApp = () => {
     { text: 'IT IS SO OVER', points: -3, icon: '↘' }
   ];
 
-  // Función para guardar datos en el navegador
-  const saveData = (newResponses, newScore) => {
-    localStorage.setItem('situationResponses', JSON.stringify(newResponses));
-    localStorage.setItem('situationScore', newScore.toString());
-    localStorage.setItem('lastAnswerDate', new Date().toDateString());
-  };
-
-  // Función para cargar datos guardados
-  const loadData = () => {
-    try {
-      const savedResponses = localStorage.getItem('situationResponses');
-      const savedScore = localStorage.getItem('situationScore');
-      const lastAnswerDate = localStorage.getItem('lastAnswerDate');
-      
-      if (savedResponses) {
-        const parsedResponses = JSON.parse(savedResponses);
-        setResponses(parsedResponses);
-        setCurrentScore(parseInt(savedScore || '0'));
-        
-        // Verificar si ya respondió hoy
-        const today = new Date().toDateString();
-        setHasAnsweredToday(lastAnswerDate === today);
-      }
-    } catch (error) {
-      console.log('No hay datos guardados o error al cargar');
-    }
-  };
-
-  // Cargar datos cuando inicia la app
+  // Simular datos existentes para demo
   useEffect(() => {
-    loadData();
+    const mockData = generateMockData();
+    setResponses(mockData);
+    setCurrentScore(mockData.reduce((sum, item) => sum + item.points, 0));
+    
+    // Verificar si ya respondió hoy
+    const today = new Date().toDateString();
+    const hasResponseToday = mockData.some(response => 
+      new Date(response.date).toDateString() === today
+    );
+    setHasAnsweredToday(hasResponseToday);
   }, []);
+
+  const generateMockData = () => {
+    const data = [];
+    const today = new Date();
+    
+    for (let i = 30; i >= 1; i--) {
+      const date = new Date(today);
+      date.setDate(date.getDate() - i);
+      
+      const randomChoice = options[Math.floor(Math.random() * options.length)];
+      data.push({
+        date: date.toISOString(),
+        points: randomChoice.points,
+        response: randomChoice.text,
+        cumulativeScore: data.length > 0 ? 
+          data[data.length - 1].cumulativeScore + randomChoice.points : 
+          randomChoice.points
+      });
+    }
+    
+    return data;
+  };
 
   const handleResponse = (option) => {
     setSelectedOption(option);
@@ -63,16 +66,11 @@ const SituationTrackerApp = () => {
       };
 
       const updatedResponses = [...responses, newResponse];
-      const newScore = currentScore + option.points;
-      
       setResponses(updatedResponses);
-      setCurrentScore(newScore);
+      setCurrentScore(currentScore + option.points);
       setHasAnsweredToday(true);
       setIsAnimating(false);
       setSelectedOption(null);
-      
-      // Guardar en el navegador
-      saveData(updatedResponses, newScore);
     }, 1000);
   };
 
@@ -124,20 +122,6 @@ const SituationTrackerApp = () => {
       <span>{option.text}</span>
     </button>
   );
-
-  const resetForNewDay = () => {
-    const today = new Date().toDateString();
-    const lastAnswerDate = localStorage.getItem('lastAnswerDate');
-    
-    if (lastAnswerDate !== today) {
-      setHasAnsweredToday(false);
-    }
-  };
-
-  // Verificar si es un nuevo día cada vez que se abre la app
-  useEffect(() => {
-    resetForNewDay();
-  }, []);
 
   if (!hasAnsweredToday) {
     return (
@@ -430,27 +414,17 @@ const SituationTrackerApp = () => {
           </div>
         </div>
 
-        {/* Debug: Reset for testing */}
+        {/* Reset Button for Demo */}
         <div className="text-center mt-6">
           <button
             onClick={() => {
-              localStorage.removeItem('lastAnswerDate');
               setHasAnsweredToday(false);
               setIsAnimating(false);
               setSelectedOption(null);
             }}
-            className="bg-white border-2 border-black px-6 py-2 font-mono font-bold hover:bg-gray-100 tracking-wide mr-4"
+            className="bg-white border-2 border-black px-6 py-2 font-mono font-bold hover:bg-gray-100 tracking-wide"
           >
-            TEST NEW DAY
-          </button>
-          <button
-            onClick={() => {
-              localStorage.clear();
-              window.location.reload();
-            }}
-            className="bg-red-500 border-2 border-black px-6 py-2 font-mono font-bold hover:bg-red-600 tracking-wide text-white"
-          >
-            CLEAR ALL DATA
+            ANSWER AGAIN (DEMO)
           </button>
         </div>
       </div>
